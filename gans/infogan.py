@@ -11,17 +11,16 @@ class InfoGAN(object):
     def __init__(
             self,
             input_dim=28 ** 2,
-            z_dim=64,
+            z_dim=100,
             c_dim=10,
             dropout_keep_prob=1.,
-            gen_hidden_layer_dims=(64,128,256,512),
-            critic_hidden_layer_dims=(512,256,128,64),
-            recog_hidden_layer_dims=(512,256,128,64),
+            gen_hidden_layer_dims=(128,256,512),
+            critic_hidden_layer_dims=(512,256,128),
+            recog_hidden_layer_dims=(512,256,128),
             gp_weight=10,
             recog_weight=1,
             gen_learning_rate=5e-4,
             critic_learning_rate=2.5e-4,
-            recog_learning_rate=5e-4,
             grad_scale=50):
         self.input_dim = input_dim
         self.z_dim = z_dim
@@ -34,7 +33,6 @@ class InfoGAN(object):
         self.recog_weight = recog_weight
         self.gen_learning_rate = gen_learning_rate
         self.critic_learning_rate = critic_learning_rate
-        self.recog_learning_rate = recog_learning_rate
         self.grad_scale = grad_scale
         self._build_model()
     
@@ -144,13 +142,13 @@ class InfoGAN(object):
         
         # gen loss
         self.gen_loss = -tf.reduce_mean(self.gen_scores)
-        self.gen_loss += self.recog_weight * tf.reduce_mean(self.c * self.recog_probs)
+        self.total_loss = self.gen_loss + self.recog_weight * self.recog_loss
 
         # summaries
         self.critic_summaries += [tf.summary.scalar('critic/w_dist', 
             -(critic_real_loss + critic_gen_loss))]
         self.gen_summaries += [tf.summary.scalar('gen/loss', self.gen_loss)]
-        self.gen_summaries += [tf.summary.scalar('recog/loss', self.recog_loss)]
+        self.gen_summaries += [tf.summary.scalar('recog/loss', self.recog_weight * self.recog_loss)]
 
     def _build_train_op(self):
         self.critic_train_op, summaries = _build_train_op(
@@ -161,18 +159,10 @@ class InfoGAN(object):
             'critic'
         )
         self.critic_summaries += summaries
-        self.recog_train_op, summaries = _build_train_op(
-            self.recog_loss, 
-            self.recog_learning_rate, 
-            self.recog_vars, 
-            self.grad_scale,
-            'recog'
-        )
-        self.gen_summaries += summaries
         self.gen_train_op, summaries = _build_train_op(
-            self.gen_loss, 
+            self.total_loss, 
             self.gen_learning_rate, 
-            self.gen_vars, 
+            self.gen_vars + self.recog_vars, 
             self.grad_scale, 
             'gen',
             global_step=self.global_step
@@ -240,8 +230,7 @@ class InfoGAN(object):
             outputs = [
                 self.gen_loss, 
                 self.gen_train_op, 
-                self.recog_loss, 
-                self.recog_train_op
+                self.recog_loss
             ]
             if summarize:
                 outputs += [self.gen_summary_op]
@@ -252,12 +241,12 @@ class InfoGAN(object):
             }
             fetched = sess.run(outputs, feed_dict=feed)
             if summarize:
-                gen_loss, _, recog_loss, _, summary = fetched
+                gen_loss, _, recog_loss, summary = fetched
                 if writer is not None:
                     writer.add_summary(tf.Summary.FromString(summary), step)
                     writer.flush()
             else:
-                gen_loss, _, recog_loss, _ = fetched
+                gen_loss, _, recog_loss = fetched
             
             # update gen info
             info['gen_loss'] += gen_loss

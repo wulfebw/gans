@@ -84,4 +84,5 @@ def plot_grid_summary(xs, name='', side=28):
     summary = tf.Summary(value=[
        tf.Summary.Value(tag='gen/{}'.format(name), image=img_sum)
     ])
+    plt.close()
     return summary

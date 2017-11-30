@@ -328,7 +328,7 @@ class InfoGAN(object):
         
         # allocate return containers
         gx = np.zeros((n_samples, self.input_dim))
-        scores = np.zeros(n_samples)
+        scores = np.zeros((n_samples,1))
 
         # formulate outputs
         outputs = [self.gx, self.gen_scores]

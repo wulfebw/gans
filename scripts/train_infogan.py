@@ -35,8 +35,8 @@ if __name__ == '__main__':
     with tf.Session() as sess:
         model = infogan.InfoGAN(
             dropout_keep_prob=.95,
-            recog_weight=10
+            recog_weight=1
         )
         sess.run(tf.global_variables_initializer())
         dataset = dataset.Dataset(x, batch_size=1000)
-        model.train(dataset, n_epochs=100, writer=writer, permute=permute)
+        model.train(dataset, n_epochs=1000, writer=writer, permute=permute)

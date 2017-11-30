@@ -262,10 +262,10 @@ class InfoGAN(object):
 
     def _validate(self, writer, step, permute=None, n_z=8):
         xs = []
+        zs = np.repeat(np.linspace(-3,3,n_z), self.z_dim).reshape(n_z, self.z_dim)
         for i in range(n_z):
-            c = np.eye(10)[np.arange(10)]
-            z = np.tile(np.random.rand(self.z_dim), (10,1))
-            info = self.generate(z=z, c=c)
+            z = np.tile(zs[i], (self.c_dim, 1))
+            info = self.generate(z=z, c=np.eye(self.c_dim)[np.arange(self.c_dim)])
             xs.append(info['gx'])
 
         summary = plot_grid_summary(xs, name='validation')
